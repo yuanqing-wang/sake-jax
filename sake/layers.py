@@ -150,22 +150,6 @@ class DenseSAKELayer(SAKELayer):
         out = h + out
         return out
 
-    def euclidean_attention(self, x_minus_xt_norm, mask=None):
-        # (batch_size, n, n, 1)
-        _x_minus_xt_norm = x_minus_xt_norm + 1e5 * jnp.expand_dims(jnp.eye(
-            x_minus_xt_norm.shape[-2],
-            x_minus_xt_norm.shape[-2],
-        ), -1)
-
-        if mask is not None:
-            _x_minus_xt_norm = _x_minus_xt_norm + 1e5 * (1- jnp.expand_dims(mask, -1))
-
-        att = jax.nn.softmax(
-            -_x_minus_xt_norm * jnp.exp(self.log_gamma),
-            axis=-2,
-        )
-        return att
-
     def semantic_attention(self, h_e_mtx, mask=None):
         # (batch_size, n, n, n_heads)
         att = self.semantic_attention_mlp(h_e_mtx)
@@ -192,8 +176,7 @@ class DenseSAKELayer(SAKELayer):
 
         combined_attention = euclidean_attention * semantic_attention
         if mask is not None:
-            combined_attention = combined_attention - 1e5 * (1 - jnp.expand_dims(mask, -1))
-        # combined_attention = jax.nn.softmax(combined_attention, axis=-2)
+            combined_attention = combined_attention * jnp.expand_dims(mask, -1)
         combined_attention = combined_attention / combined_attention.sum(axis=-2, keepdims=True)
         
         return euclidean_attention, semantic_attention, combined_attention

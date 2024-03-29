@@ -192,8 +192,7 @@ class DenseSAKELayer(SAKELayer):
 
         combined_attention = euclidean_attention * semantic_attention
         if mask is not None:
-            combined_attention = combined_attention - 1e5 * (1 - jnp.expand_dims(mask, -1))
-        # combined_attention = jax.nn.softmax(combined_attention, axis=-2)
+            combined_attention = combined_attention * jnp.expand_dims(mask, -1)
         combined_attention = combined_attention / combined_attention.sum(axis=-2, keepdims=True)
         
         return euclidean_attention, semantic_attention, combined_attention
